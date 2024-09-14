@@ -70,6 +70,14 @@ HR_plot <- function() {
 }
 
 @transform_pandas(
+    Output(rid="ri.vector.main.execute.ddf67bd2-c537-4340-bfcc-9c789011b696"),
+    censored_cohort_60=Input(rid="ri.foundry.main.dataset.c29948a5-d3f1-473b-be51-9a1b70e73254")
+)
+RR_SA60 <- function(censored_cohort_60) {
+    
+}
+
+@transform_pandas(
     Output(rid="ri.vector.main.execute.1268624d-2d71-4f92-b229-4cefe8641803"),
     HR_plot=Input(rid="ri.vector.main.execute.c22347d6-8b87-462b-b7cc-36a272cc7fd3")
 )
