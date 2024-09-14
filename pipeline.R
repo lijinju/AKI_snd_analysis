@@ -213,6 +213,35 @@ SA90_COX_u <- function( SA90TABLE1) {
 }
 
 @transform_pandas(
+    Output(rid="ri.vector.main.execute.fd770f4a-3660-4284-8381-32f5d463fa04"),
+    SA90TABLE1=Input(rid="ri.foundry.main.dataset.e9e46282-dc3c-44b4-adfd-412004901484")
+)
+ SA90_km <- function(SA90TABLE1) {
+    
+    library(survival)
+    library(survminer)
+
+    KM <- survfit(Surv(AKI_interval_2, has_AKI ) ~  group_id, data = SA90TABLE1)    #  AKI_by_code as outcome
+
+    plot <- ggsurvplot(
+        KM,
+        ylab = expression(bold("Probability of NOT developing AKI")),
+        xlab = expression(bold("Days")),
+        ylim = c(0.94, 1.0),
+        xlim = c(0, 90),
+        lwd = 8,
+        risk.table = TRUE,
+        pval = TRUE,
+        pval.method = TRUE,
+        pval.coord = c(1, 1),
+        data = SA90TABLE1
+        )
+
+    print(plot)
+    
+}
+
+@transform_pandas(
     Output(rid="ri.vector.main.execute.3dc3deb0-2219-469d-8057-d320d68ffe6e"),
     SA90TABLE1=Input(rid="ri.foundry.main.dataset.e9e46282-dc3c-44b4-adfd-412004901484")
 )
