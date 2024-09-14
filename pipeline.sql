@@ -1,6 +1,166 @@
 
 
 @transform_pandas(
+    Output(rid="ri.foundry.main.dataset.cc92d73d-a942-4f57-bc8a-14ffc8f1c177"),
+    All_concept_set=Input(rid="ri.foundry.main.dataset.80e12731-f476-4faa-aee4-fb64f7a0bdff"),
+    censored_cohort_60=Input(rid="ri.foundry.main.dataset.c29948a5-d3f1-473b-be51-9a1b70e73254"),
+    condition_occurrence=Input(rid="ri.foundry.main.dataset.526c0452-7c18-46b6-8a5d-59be0b79a10b"),
+    person1=Input(rid="ri.foundry.main.dataset.af5e5e91-6eeb-4b14-86df-18d84a5aa010")
+)
+----this is first verison for table 1,include 15 columns--------------------
+-----age into decade, time zero period------------
+-----------------------------------------------------------temporary table for medical history--------------------------------------
+WITH ConditionCTE AS (
+    SELECT
+        a.person_id,
+        MAX(CASE WHEN c.group_number = 3 THEN 1 ELSE 0 END) AS past_AKI,
+        MAX(CASE WHEN c.group_number = 1 THEN 1 ELSE 0 END) AS hypertension,   ----1320106
+        MAX(CASE WHEN c.group_number = 2 THEN 1 ELSE 0 END) AS diabetes_mellitus,---278113
+        MAX(CASE WHEN c.group_number = 4 THEN 1 ELSE 0 END) AS heart_failure,
+        MAX(CASE WHEN c.group_number = 5 THEN 1 ELSE 0 END) AS cardiovascular_disease,
+        MAX(CASE WHEN c.group_number = 6 THEN 1 ELSE 0 END) AS obesity
+    FROM censored_cohort_60 a
+    LEFT JOIN condition_occurrence s ON a.person_id = s.person_id
+    LEFT JOIN All_concept_set c ON s.condition_concept_id = c.concept_id
+    WHERE s.condition_start_date < time_zero
+      AND DATEDIFF(time_zero, s.condition_start_date) < 365
+    GROUP BY a.person_id
+)
+
+-------------------------------正式表------------------------------------------------------------------------------------------
+SELECT DISTINCT a.group_id, a.person_id, a.time_zero, has_AKI, AKI_interval_2,
+
+------------------------gender,不明确的直接扔掉-------------------------------
+CASE 
+  WHEN b.gender_concept_id = 8532 THEN 'F'
+  WHEN b.gender_concept_id = 8507 THEN 'M'
+  ELSE NULL 
+END AS gender,
+-- -------------------准确的年龄列,大于90直接扔掉------------------------------
+CAST((2023 - year_of_birth) AS decimal(10,2)) AS age_num,
+
+-- 创建年龄分组列------------------------------------------------------------
+CASE
+  WHEN year_of_birth IS NOT NULL AND NOT is_age_90_or_older THEN
+    CASE
+      WHEN CAST(2023 - year_of_birth AS integer) < 30 THEN '<30'
+      WHEN CAST(2023 - year_of_birth AS integer) BETWEEN 30 AND 49 THEN '30-49'
+      WHEN CAST(2023 - year_of_birth AS integer) BETWEEN 50 AND 64 THEN '50-64'
+      WHEN CAST(2023 - year_of_birth AS integer) >= 65 AND CAST(2023 - year_of_birth AS integer) <= 90 THEN '65-90'
+      ELSE NULL
+    END
+  ELSE NULL
+END AS age_category,
+---race-------------
+CASE 
+  WHEN race_concept_id = 8527 THEN 'white'
+  WHEN race_concept_id = 8516 THEN 'black'
+  WHEN race_concept_id = 8515 THEN 'asian' 
+  WHEN race_concept_id IS NULL OR race_concept_id = 0 THEN 'no info'
+  ELSE 'other'
+END AS race,
+----ethnicity--------------------
+CASE 
+  WHEN ethnicity_concept_id = 38003564 THEN 'Not Hispanic or Latino'
+  WHEN ethnicity_concept_id = 38003563  THEN 'Hispanic or Latino'
+  ELSE 'Unknown'
+END AS ethnicity,
+--death_date-------------------------------------------------------------------------------
+death_date,
+--medical history in one year before T0-----------------------------------------------------
+       COALESCE(past_AKI, 0) AS past_AKI,
+       COALESCE(hypertension, 0) AS hypertension,
+       COALESCE(diabetes_mellitus, 0) AS diabetes_mellitus,
+       COALESCE(heart_failure, 0) AS heart_failure,
+       COALESCE(cardiovascular_disease, 0) AS cardiovascular_disease,
+       COALESCE(obesity, 0) AS obesity
+
+FROM censored_cohort_60 a
+INNER JOIN person1 b ON a.person_id = b.person_id
+LEFT JOIN ConditionCTE c ON a.person_id = c.person_id
+WHERE (year_of_birth IS not NULL ) AND ( b.gender_concept_id IN ('8532', '8507')) AND b.person_id IS NOT NULL;---------确保队列中没有人有missing data
+
+@transform_pandas(
+    Output(rid="ri.vector.main.execute.9be46c49-3983-4725-84e4-2c16b59c0703"),
+    All_concept_set=Input(rid="ri.foundry.main.dataset.80e12731-f476-4faa-aee4-fb64f7a0bdff"),
+    censored_cohort_90=Input(rid="ri.foundry.main.dataset.bd2dcaf1-1ada-4843-8d03-994658abd547"),
+    condition_occurrence=Input(rid="ri.foundry.main.dataset.526c0452-7c18-46b6-8a5d-59be0b79a10b"),
+    person1=Input(rid="ri.foundry.main.dataset.af5e5e91-6eeb-4b14-86df-18d84a5aa010")
+)
+----this is first verison for table 1,include 15 columns--------------------
+-----age into decade, time zero period------------
+-----------------------------------------------------------temporary table for medical history--------------------------------------
+WITH ConditionCTE AS (
+    SELECT
+        a.person_id,
+        MAX(CASE WHEN c.group_number = 3 THEN 1 ELSE 0 END) AS past_AKI,
+        MAX(CASE WHEN c.group_number = 1 THEN 1 ELSE 0 END) AS hypertension,   ----1320106
+        MAX(CASE WHEN c.group_number = 2 THEN 1 ELSE 0 END) AS diabetes_mellitus,---278113
+        MAX(CASE WHEN c.group_number = 4 THEN 1 ELSE 0 END) AS heart_failure,
+        MAX(CASE WHEN c.group_number = 5 THEN 1 ELSE 0 END) AS cardiovascular_disease,
+        MAX(CASE WHEN c.group_number = 6 THEN 1 ELSE 0 END) AS obesity
+    FROM censored_cohort_90 a
+    LEFT JOIN condition_occurrence s ON a.person_id = s.person_id
+    LEFT JOIN All_concept_set c ON s.condition_concept_id = c.concept_id
+    WHERE s.condition_start_date < time_zero
+      AND DATEDIFF(time_zero, s.condition_start_date) < 365
+    GROUP BY a.person_id
+)
+
+-------------------------------正式表------------------------------------------------------------------------------------------
+SELECT DISTINCT a.group_id, a.person_id, a.time_zero, has_AKI, AKI_interval_2,
+
+------------------------gender,不明确的直接扔掉-------------------------------
+CASE 
+  WHEN b.gender_concept_id = 8532 THEN 'F'
+  WHEN b.gender_concept_id = 8507 THEN 'M'
+  ELSE NULL 
+END AS gender,
+-- -------------------准确的年龄列,大于90直接扔掉------------------------------
+CAST((2023 - year_of_birth) AS decimal(10,2)) AS age_num,
+
+-- 创建年龄分组列------------------------------------------------------------
+CASE
+  WHEN year_of_birth IS NOT NULL AND NOT is_age_90_or_older THEN
+    CASE
+      WHEN CAST(2023 - year_of_birth AS integer) < 30 THEN '<30'
+      WHEN CAST(2023 - year_of_birth AS integer) BETWEEN 30 AND 49 THEN '30-49'
+      WHEN CAST(2023 - year_of_birth AS integer) BETWEEN 50 AND 64 THEN '50-64'
+      WHEN CAST(2023 - year_of_birth AS integer) >= 65 AND CAST(2023 - year_of_birth AS integer) <= 90 THEN '65-90'
+      ELSE NULL
+    END
+  ELSE NULL
+END AS age_category,
+---race-------------
+CASE 
+  WHEN race_concept_id = 8527 THEN 'white'
+  WHEN race_concept_id = 8516 THEN 'black'
+  WHEN race_concept_id = 8515 THEN 'asian' 
+  WHEN race_concept_id IS NULL OR race_concept_id = 0 THEN 'no info'
+  ELSE 'other'
+END AS race,
+----ethnicity--------------------
+CASE 
+  WHEN ethnicity_concept_id = 38003564 THEN 'Not Hispanic or Latino'
+  WHEN ethnicity_concept_id = 38003563  THEN 'Hispanic or Latino'
+  ELSE 'Unknown'
+END AS ethnicity,
+--death_date-------------------------------------------------------------------------------
+death_date,
+--medical history in one year before T0-----------------------------------------------------
+       COALESCE(past_AKI, 0) AS past_AKI,
+       COALESCE(hypertension, 0) AS hypertension,
+       COALESCE(diabetes_mellitus, 0) AS diabetes_mellitus,
+       COALESCE(heart_failure, 0) AS heart_failure,
+       COALESCE(cardiovascular_disease, 0) AS cardiovascular_disease,
+       COALESCE(obesity, 0) AS obesity
+
+FROM censored_cohort_90 a
+INNER JOIN person1 b ON a.person_id = b.person_id
+LEFT JOIN ConditionCTE c ON a.person_id = c.person_id
+WHERE (year_of_birth IS not NULL ) AND ( b.gender_concept_id IN ('8532', '8507')) AND b.person_id IS NOT NULL;---------确保队列中没有人有missing data
+
+@transform_pandas(
     Output(rid="ri.foundry.main.dataset.c29948a5-d3f1-473b-be51-9a1b70e73254"),
     queue_group_60=Input(rid="ri.foundry.main.dataset.846368ab-e54b-41c0-8210-5f1f0823180d")
 )
