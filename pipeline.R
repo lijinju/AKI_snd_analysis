@@ -194,6 +194,67 @@ SA90_COX_m <- function(SA90TABLE1) {
 }
 
 @transform_pandas(
+    Output(rid="ri.vector.main.execute.c11a5b8e-54ba-4f8d-ab3d-bd5ca0329eb8"),
+    SA90TABLE1=Input(rid="ri.foundry.main.dataset.e9e46282-dc3c-44b4-adfd-412004901484")
+)
+SA90_COX_u <- function( SA90TABLE1) {
+    library(survival)
+    library(survminer)
+    library(ggpubr)
+
+    SA60TABLE1 <- within(SA90TABLE1, {group_id <- factor(group_id, labels = c('vaccination', 'infection'))})
+
+    AKI.cox <- coxph(Surv(AKI_interval_2, has_AKI) ~ group_id, data =  SA90TABLE1)
+
+    a <- summary(AKI.cox)
+
+    print( a )
+
+}
+
+@transform_pandas(
+    Output(rid="ri.vector.main.execute.3dc3deb0-2219-469d-8057-d320d68ffe6e"),
+    SA90TABLE1=Input(rid="ri.foundry.main.dataset.e9e46282-dc3c-44b4-adfd-412004901484")
+)
+ SA90_km_1 <- function(SA90TABLE1) {
+    
+    library(survival)
+    library(survminer)
+
+    KM <- survfit(Surv(AKI_interval_2, has_AKI ) ~  group_id, data = SA90TABLE1)    #  AKI_by_code as outcome
+
+    plot <- ggsurvplot(
+        KM,
+        conf.int = TRUE,  
+        ylab = expression(bold("Probability of NOT developing AKI")),
+        xlab = expression(bold("Days")),
+        ylim = c(0.94, 1.0),
+        xlim = c(0, 90),
+        palette = c("#E7B800", "#2E9FDF"),
+        title = " Risk of AKI within 90 Days following Exposure to COVID-19 Antigens",
+        font.title = c(16, "bold", "Darkblue"),
+        censor.shape="|", 
+        censor.size = 4,
+        ggtheme = theme_light(), 
+        size = 1.5,
+        risk.table = TRUE,
+        pval = TRUE,
+        pval.method = TRUE,
+        pval.coord = c(0, 0.94),
+        legend.title = "",           
+        legend.labs = c('Vaccination', 'Infection'),              
+        risk.table.height = 0.25, 
+        risk.table.y.text = FALSE,
+        risk.table.y.text.col = T,
+        break.x.by = 10,
+        data = SA90TABLE1
+        )
+
+    print(plot)
+    
+}
+
+@transform_pandas(
     Output(rid="ri.vector.main.execute.1268624d-2d71-4f92-b229-4cefe8641803"),
     HR_plot=Input(rid="ri.vector.main.execute.c22347d6-8b87-462b-b7cc-36a272cc7fd3")
 )
