@@ -81,7 +81,7 @@ LEFT JOIN ConditionCTE c ON a.person_id = c.person_id
 WHERE (year_of_birth IS not NULL ) AND ( b.gender_concept_id IN ('8532', '8507')) AND b.person_id IS NOT NULL;---------确保队列中没有人有missing data
 
 @transform_pandas(
-    Output(rid="ri.vector.main.execute.9be46c49-3983-4725-84e4-2c16b59c0703"),
+    Output(rid="ri.foundry.main.dataset.e9e46282-dc3c-44b4-adfd-412004901484"),
     All_concept_set=Input(rid="ri.foundry.main.dataset.80e12731-f476-4faa-aee4-fb64f7a0bdff"),
     censored_cohort_90=Input(rid="ri.foundry.main.dataset.bd2dcaf1-1ada-4843-8d03-994658abd547"),
     condition_occurrence=Input(rid="ri.foundry.main.dataset.526c0452-7c18-46b6-8a5d-59be0b79a10b"),

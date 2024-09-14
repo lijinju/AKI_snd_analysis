@@ -78,6 +78,51 @@ RR_SA60 <- function(censored_cohort_60) {
 }
 
 @transform_pandas(
+    Output(rid="ri.vector.main.execute.81b804cc-5246-423f-8fa5-62fe45f80bf7"),
+    SA60TABLE1=Input(rid="ri.foundry.main.dataset.cc92d73d-a942-4f57-bc8a-14ffc8f1c177")
+)
+SA60_COX_m <- function(SA60TABLE1) {
+    library(survival)
+    library(survminer)
+    library(ggpubr)
+
+    SA60TABLE1$race <- as.factor(SA60TABLE1$race)
+
+    SA60TABLE1$race <- relevel(SA60TABLE1$race, ref = "white")
+
+    SA60TABLE1 <- within(SA60TABLE1, {gender <- factor(gender, labels = c('female', 'male'))})
+
+    SA60TABLE1 <- within(SA60TABLE1, {group_id <- factor(group_id, labels = c('vaccination', 'infection'))})
+
+    AKI.cox <- coxph(Surv(AKI_interval_2, has_AKI) ~ group_id + past_AKI + age_category + gender + race + ethnicity + hypertension + diabetes_mellitus + heart_failure + 
+       cardiovascular_disease + obesity, data =  SA60TABLE1)
+
+    a <- summary(AKI.cox)
+
+    print( a )
+
+}
+
+@transform_pandas(
+    Output(rid="ri.vector.main.execute.044866d6-e1e6-4733-a713-1dd1f436f62d"),
+    SA60TABLE1=Input(rid="ri.foundry.main.dataset.cc92d73d-a942-4f57-bc8a-14ffc8f1c177")
+)
+SA60_COX_u <- function(SA60TABLE1) {
+    library(survival)
+    library(survminer)
+    library(ggpubr)
+
+    SA60TABLE1 <- within(SA60TABLE1, {group_id <- factor(group_id, labels = c('vaccination', 'infection'))})
+
+    AKI.cox <- coxph(Surv(AKI_interval_2, has_AKI) ~ group_id, data =  SA60TABLE1)
+
+    a <- summary(AKI.cox)
+
+    print( a )
+
+}
+
+@transform_pandas(
     Output(rid="ri.vector.main.execute.1268624d-2d71-4f92-b229-4cefe8641803"),
     HR_plot=Input(rid="ri.vector.main.execute.c22347d6-8b87-462b-b7cc-36a272cc7fd3")
 )
