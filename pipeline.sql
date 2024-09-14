@@ -1,6 +1,34 @@
 
 
 @transform_pandas(
+    Output(rid="ri.vector.main.execute.3b68daf1-6a91-4f91-8a05-925d1ad0521b"),
+    queue_group_60=Input(rid="ri.foundry.main.dataset.846368ab-e54b-41c0-8210-5f1f0823180d")
+)
+----为了添加death censor,删除掉所有missing_death_date的人，除非是有明确的AKI_interval可以用于生存分析的------
+SELECT f.*
+FROM
+(SELECT 
+    q.*, 
+    CASE 
+        WHEN q.death_in_60days = 1 AND q.has_AKI = 0 THEN datediff(q.death_date, q.time_zero)
+        ELSE q.AKI_interval
+    END AS AKI_interval_2
+   
+FROM 
+    queue_group_60 q
+WHERE  
+    NOT q.missing_death_date
+    AND (
+        -- 添加条件去除 AKI_interval_2 小于 0 的数据
+        (q.death_in_60days = 1 AND q.has_AKI = 0 AND datediff(q.death_date, q.time_zero) >= 0)
+        OR
+        (q.death_in_60days != 1 OR q.has_AKI = 1 OR q.AKI_interval >= 0 ) ---为了补足上面的语句------
+    )
+)f
+WHERE AKI_interval_2>= 0 ; -----------二次筛选是为了用简单的方法选出AKI_interval为合理值---------
+------------有AKI AKI_start_date的就可以利用时间--------------
+
+@transform_pandas(
     Output(rid="ri.vector.main.execute.459644b9-6b8a-4e6a-a87a-ad26485e4073"),
     Saig90_aki_outcome=Input(rid="ri.foundry.main.dataset.74e11739-c1fe-4d69-bcf7-ec020fb26167"),
     Savg90_aki_outcome=Input(rid="ri.foundry.main.dataset.8c897371-69ff-41d7-a33d-7bfd13307dde"),
