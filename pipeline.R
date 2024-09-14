@@ -78,6 +78,52 @@ RR_SA60 <- function(censored_cohort_60) {
 }
 
 @transform_pandas(
+    Output(rid="ri.vector.main.execute.1aaa926b-5a33-4808-9bf7-7a6f7bee11e3"),
+    SA60TABLE1=Input(rid="ri.foundry.main.dataset.cc92d73d-a942-4f57-bc8a-14ffc8f1c177")
+)
+SA60KM <- function(SA60TABLE1) {
+    library(survival)
+    library(survminer)
+
+    SA60TABLE1 <- within(SA60TABLE1, {group_id <- factor(group_id, labels = c('vaccination', 'infection'))})
+
+    KM <- survfit(Surv(AKI_interval_2, has_AKI ) ~  group_id, data = SA60TABLE1)    #  AKI_by_code as outcome
+
+    ab <- summary(KM, times = c(0,10,20,30,40,50,60))
+
+    plot <- ggsurvplot(
+        KM,
+        conf.int = TRUE,  
+        ylab = expression(bold("Probability of NOT developing AKI")),
+        xlab = expression(bold("Days")),
+        ylim = c(0.94, 1.0),
+        xlim = c(0, 60),
+        palette = c("#E7B800", "#2E9FDF"),
+        title = " Risk of AKI within 60 Days following Exposure to COVID-19 Antigens",
+        font.title = c(16, "bold", "Darkblue"),
+        censor.shape="|", 
+        censor.size = 4,
+        ggtheme = theme_light(), 
+        size = 1.5,
+        risk.table = TRUE,
+        pval = TRUE,
+        pval.method = TRUE,
+        pval.coord = c(0, 0.94),
+        legend.title = "",           
+        legend.labs = c('Vaccination', 'Infection'),              
+        risk.table.height = 0.25, 
+        risk.table.y.text = FALSE,
+        risk.table.y.text.col = T,
+        break.x.by = 10,
+        data = SA60TABLE1
+        )
+
+    print(ab)
+
+    print(plot)
+}
+
+@transform_pandas(
     Output(rid="ri.vector.main.execute.81b804cc-5246-423f-8fa5-62fe45f80bf7"),
     SA60TABLE1=Input(rid="ri.foundry.main.dataset.cc92d73d-a942-4f57-bc8a-14ffc8f1c177")
 )
@@ -115,6 +161,31 @@ SA60_COX_u <- function(SA60TABLE1) {
     SA60TABLE1 <- within(SA60TABLE1, {group_id <- factor(group_id, labels = c('vaccination', 'infection'))})
 
     AKI.cox <- coxph(Surv(AKI_interval_2, has_AKI) ~ group_id, data =  SA60TABLE1)
+
+    a <- summary(AKI.cox)
+
+    print( a )
+
+}
+
+@transform_pandas(
+    Output(rid="ri.vector.main.execute.85bb74e5-204b-4f89-ae02-bfad9056aa86"),
+    SA90TABLE1=Input(rid="ri.foundry.main.dataset.e9e46282-dc3c-44b4-adfd-412004901484")
+)
+SA90_COX_m <- function(SA90TABLE1) {
+
+    library(survival)
+
+    SA90TABLE1$race <- as.factor(SA90TABLE1$race)
+
+    SA90TABLE1$race <- relevel(SA90TABLE1$race, ref = "white")
+
+    SA90TABLE1 <- within(SA90TABLE1, {gender <- factor(gender, labels = c('female', 'male'))})
+
+    SA90TABLE1 <- within(SA90TABLE1, {group_id <- factor(group_id, labels = c('vaccination', 'infection'))})
+
+    AKI.cox <- coxph(Surv(AKI_interval_2, has_AKI) ~ group_id + past_AKI + age_category + gender + race + ethnicity + hypertension + diabetes_mellitus + heart_failure + 
+       cardiovascular_disease + obesity, data = SA90TABLE1)
 
     a <- summary(AKI.cox)
 
